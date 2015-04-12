@@ -21,13 +21,16 @@ class Server(object):
                 interaction = tuple(interaction.strip().split("|"))
                 c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?,?)''', interaction)
         self.db.commit()
-	c.close()
-	print "INIT FINISHED."
+    c.close()
+    print "INIT FINISHED."
 
     def query(self, query):
-	c = self.db.cursor()
-	return c.execute(query).fetchall()
-	
+    c = self.db.cursor()
+    return c.execute(query).fetchall()
+
+    def pair_query(self, query, dr1,dr2):
+    c = self.db.cursor()
+    return c.execute(query.format(d1=dr1,d2=dr2)).fetchall()
 
     @cherrypy.expose
     def index(self):
@@ -42,34 +45,32 @@ class Server(object):
         try:
             return_val = [el[0] for el in self.query('''select distinct class from drugs''')]
         except Exception, e:
-	    print e
+        print e
         return return_val
 
     @cherrypy.expose
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
     @cherrypy.tools.json_in(force=False)
-    def get_drugs(self):
+    def get_drugs(self,disease):
         try:
-            disease = cherrypy.request.json # Disease name
-        except:
-            pass
+            return_val = [el[0] for el in self.query('''select distinct name from drugs where class = "{disease}"'''.format(disease=disease))] # Disease name
+        except Exception, e:
+            print e
 
         # TODO: Return drugs associated with disease
-        return_val = []
         return return_val
 
     @cherrypy.expose
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
     @cherrypy.tools.json_in(force=False)
-    def pair_scores(self):
+    def pair_scores(self,d1="",d2=""):
         try:
-            pairs = cherrypy.request.json # Array of drug pairs
-        except:
-            pass
+            pairs = [el[0] for el in self.pair_query('''select severity from interactions where ((d1="{d1}" and d2="{d2}") or (d1="{d2}" and d2="{d1}"))''',d1,d2)] # Array of drug pairs
+        except Exception, e:
+            print e
 
         # TODO: Return array of drug pair scores in the same order
-        return_val = []
-        return return_val
+        return pairs
 
 def CORS():
     cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
