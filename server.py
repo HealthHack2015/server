@@ -11,12 +11,12 @@ class Server(object):
         self.c.execute('''create table drugs (name text unique, class text, indication text)''')
         self.c.execute('''create table interactions (d1 text, d2 text, severity integer, warning text, desc text)''')
         self.db.commit()
-        with open("drugs_table.psv", "r") as drugs:
+        with open("../raw_data/drugs_table.psv", "r") as drugs:
             for drug in drugs.readlines():
                 drug = tuple(drug.strip().split("|"))
                 self.c.execute('''insert into drugs(name,class,indication) values(?,?,?)''', drug)
         self.db.commit()
-        with open("drug_interactions.psv", "r") as interactions:
+        with open("../raw_data/drug_interactions.psv", "r") as interactions:
             for interaction in interactions.readlines():
                 interaction = tuple(drug.strip().split("|"))
                 self.c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?)''', interaction)
