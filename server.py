@@ -1,11 +1,31 @@
 import cherrypy
 import cherrypy_cors
+import sqlite3
 
 class Server(object):
     def __init__(self):
         object.__init__(self)
         # TODO: Read in raw data and index
-        # self.field = something
+        self.db = sqlite3.connect(":memory:")
+        self.c = self.db.cursor()
+        self.c.execute('''create table drugs (name text unique, class text, indication text)''')
+        self.c.execute('''create table interactions (d1 text, d2 text, severity integer, warning text, desc text)''')
+        self.db.commit()
+        with open("drugs_table.psv", "r") as drugs:
+            for drug in drugs.readlines():
+                drug = tuple(drug.strip().split("|"))
+                self.c.execute('''insert into drugs(name,class,indication) values(?,?,?)''', drug)
+        self.db.commit()
+        with open("drug_interactions.psv", "r") as interactions:
+            for interaction in interactions.readlines():
+                interaction = tuple(drug.strip().split("|"))
+                self.c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?)''', interaction)
+        self.db.commit()
+
+    def query(query):
+        self.c.execute(query)
+        self.db.commit()
+
 
     @cherrypy.expose
     def index(self):
@@ -18,6 +38,10 @@ class Server(object):
     def get_diseases(self):
         # TODO: Return list of diseases
         return_val = []
+        try:
+            query('''select distinct class from drugs''')
+        except Exception, e:
+            pass
         return return_val
 
     @cherrypy.expose
