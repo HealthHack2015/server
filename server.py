@@ -6,27 +6,29 @@ class Server(object):
     def __init__(self):
         object.__init__(self)
         # TODO: Read in raw data and index
-        self.db = sqlite3.connect(":memory:")
+        self.db = sqlite3.connect(":memory:", check_same_thread=False)
         self.db.text_factory = str
-        self.c = self.db.cursor()
-        self.c.execute('''create table drugs (name text unique, class text, indication text)''')
-        self.c.execute('''create table interactions (d1 text, d2 text, severity integer, warning text, desc text)''')
+        c = self.db.cursor()
+        c.execute('''create table drugs (name text unique, class text, indication text)''')
+        c.execute('''create table interactions (d1 text, d2 text, severity integer, warning text, desc text)''')
         self.db.commit()
         with open("../raw_data/drugs_table.psv", "r") as drugs:
             for drug in drugs.readlines():
                 drug = tuple(drug.strip().split("|"))
-                self.c.execute('''insert into drugs(name,class,indication) values(?,?,?)''', drug)
+                c.execute('''insert into drugs(name,class,indication) values(?,?,?)''', drug)
         self.db.commit()
         with open("../raw_data/drug_interactions.psv", "r") as interactions:
             for interaction in interactions.readlines():
                 interaction = tuple(interaction.strip().split("|"))
-                self.c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?)''', interaction)
+                c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?,?)''', interaction)
         self.db.commit()
+	c.close()
+	print "INIT FINISHED."
 
-    def query(query):
-        self.c.execute(query)
-        self.db.commit()
-
+    def query(self, query):
+	c = self.db.cursor()
+	return c.execute(query).fetchall()
+	
 
     @cherrypy.expose
     def index(self):
@@ -40,9 +42,9 @@ class Server(object):
         # TODO: Return list of diseases
         return_val = []
         try:
-            query('''select distinct class from drugs''')
+            return_val = [el[0] for el in self.query('''select distinct class from drugs''')]
         except Exception, e:
-            pass
+	    print e
         return return_val
 
     @cherrypy.expose
