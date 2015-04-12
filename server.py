@@ -5,7 +5,6 @@ import sqlite3
 class Server(object):
     def __init__(self):
         object.__init__(self)
-        # TODO: Read in raw data and index
         self.db = sqlite3.connect(":memory:", check_same_thread=False)
         self.db.text_factory = str
         c = self.db.cursor()
@@ -39,7 +38,6 @@ class Server(object):
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
     @cherrypy.tools.json_in(force=False)
     def get_diseases(self):
-        # TODO: Return list of diseases
         return_val = []
         try:
             return_val = [el[0] for el in self.query('''select distinct class from drugs''')]
