@@ -7,6 +7,7 @@ class Server(object):
         object.__init__(self)
         # TODO: Read in raw data and index
         self.db = sqlite3.connect(":memory:")
+        self.db.text_factory = str
         self.c = self.db.cursor()
         self.c.execute('''create table drugs (name text unique, class text, indication text)''')
         self.c.execute('''create table interactions (d1 text, d2 text, severity integer, warning text, desc text)''')
@@ -18,7 +19,7 @@ class Server(object):
         self.db.commit()
         with open("../raw_data/drug_interactions.psv", "r") as interactions:
             for interaction in interactions.readlines():
-                interaction = tuple(drug.strip().split("|"))
+                interaction = tuple(interaction.strip().split("|"))
                 self.c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?)''', interaction)
         self.db.commit()
 
