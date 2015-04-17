@@ -1,6 +1,7 @@
 import cherrypy
 import cherrypy_cors
 import sqlite3
+import itertools as it
 
 class Server(object):
     def __init__(self):
@@ -21,23 +22,34 @@ class Server(object):
                 interaction = tuple(interaction.strip().split("|"))
                 c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?,?)''', interaction)
         self.db.commit()
-	c.close()
+        c.close()
         print "INIT FINISHED."
 
     def query(self, query):
-	c = self.db.cursor()
-	return c.execute(query).fetchall()
-	
-    def pair_query(self, query, dr1,dr2):
-	c = self.db.cursor()
-	return c.execute(query.format(d1=dr1,d2=dr2)).fetchall()
+        c = self.db.cursor()
+        return c.execute(query).fetchall()
+
+    def compute_score(self,combo):
+        raw_interacts = []
+        for pair in it.combinations(combo, 2):
+            temp = [list(el) for el in self.query('''select severity,warning,desc from interactions where ((d1="{0}" and d2="{1}") or (d1="{0}" and d2="{1}"))'''.format(pair[0],pair[1]))]
+            if len(temp) > 0:
+                raw_interacts.append(temp[0])
+        max_score = 0
+        warning = ""
+        descs = []
+        for interact in raw_interacts:
+            descs.append[interact[2]]
+            if interact[0] > max_score:
+                max_score = interact[0]
+                warning = interact[1]
+        return [max_score, warning, '\n'.join(descs)]
 
     @cherrypy.expose
     def index(self):
         return "Testing..."
 
     @cherrypy.expose
-    #@cherrypy_cors.tools.expose()
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
     @cherrypy.tools.json_in(force=False)
     def get_diseases(self):
@@ -45,30 +57,22 @@ class Server(object):
         try:
             return_val = [el[0] for el in self.query('''select distinct class from drugs''')]
         except Exception, e:
-	    print e
+            print e
         return return_val
 
     @cherrypy.expose
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
     @cherrypy.tools.json_in(force=False)
-    def get_drugs(self,disease):
-        try:  
-           return_val = [el[0] for el in self.query('''select distinct name from drugs where class = "{disease}"'''.format(disease=disease))] # Disease name
-        except Exception, e:
-            print e
-	return return_val
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
-    @cherrypy.tools.json_in(force=False)
-    def pair_scores(self,d1="",d2=""):
+    def get_scores(self):
         try:
-            pairs = [el[0] for el in self.pair_query('''select severity from interactions where ((d1="{d1}" and d2="{d2}") or (d1="{d2}" and d2="{d1}"))''',d1,d2)] # Array of drug pairs
-        except Exception, e:
-            print e
-
-        # TODO: Return array of drug pair scores in the same order
-        return pairs
+            diseases = cherrypy.request.json
+            disease_drugs = []
+            for disease in diseases:
+                temp = [el[0] for el in self.query('''select distinct name from drugs where class = "{0}"'''.format(disease))] # Disease name
+                disease_drugs.append(temp)
+            return sorted([compute_score(combo).append(combo) for combo in list(it.product(*disease_drugs))], key = lambda x: x[0])
+        except:
+            return []
 
 def CORS():
     cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
