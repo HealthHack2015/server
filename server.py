@@ -21,8 +21,8 @@ class Server(object):
                 interaction = tuple(interaction.strip().split("|"))
                 c.execute('''insert into interactions(d1,d2,severity,warning,desc) values(?,?,?,?,?)''', interaction)
         self.db.commit()
-	c.close()
-	print "INIT FINISHED."
+    c.close()
+    print "INIT FINISHED."
 
     def query(self, query):
 	c = self.db.cursor()
@@ -45,7 +45,7 @@ class Server(object):
         try:
             return_val = [el[0] for el in self.query('''select distinct class from drugs''')]
         except Exception, e:
-	    print e
+        print e
         return return_val
 
     @cherrypy.expose
@@ -53,12 +53,10 @@ class Server(object):
     @cherrypy.tools.json_in(force=False)
     def get_drugs(self,disease):
         try:  
-            return_val = [el[0] for el in self.query('''select distinct name from drugs where class = "{disease}"'''.format(disease=disease))] # Disease name
+           return_val = [el[0] for el in self.query('''select distinct name from drugs where class = "{disease}"'''.format(disease=disease))] # Disease name
         except Exception, e:
             print e
-
-        # TODO: Return drugs associated with disease 
-        return return_val
+	return return_val
 
     @cherrypy.expose
     @cherrypy.tools.json_out(content_type='application/json; charset=utf-8')
